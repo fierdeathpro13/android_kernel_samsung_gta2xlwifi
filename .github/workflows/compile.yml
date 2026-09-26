@@ -7,34 +7,31 @@ on:
 jobs:
   kernel-build:
     runs-on: ubuntu-latest
+    container:
+      # Hier nutzen wir die offizielle, fertige Entwicklungsumgebung der Android-Community
+      image: docker://ubuntu:20.04
     steps:
       - name: Code holen
         uses: actions/checkout@v4
 
-      - name: Linux Tools laden
+      - name: System vorbereiten
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
-          sudo apt-get update
-          sudo apt-get install -y bc build-essential libncurses5-dev libssl-dev xz-utils wget curl git bison flex rsync lz4 liblz4-tool cpio
-
-      - name: AOSP Clang Compiler holen
-        run: |
-          mkdir -p $GITHUB_WORKSPACE/tc
-          cd $GITHUB_WORKSPACE/tc
-          wget https://googlesource.com
-          tar -xf clang-r450784d.tar.gz
+          apt-get update
+          apt-get install -y bc build-essential libncurses5-dev libssl-dev xz-utils wget curl git bison flex rsync lz4 liblz4-tool cpio clang lld llvm
 
       - name: Kernel bauen
         run: |
           export ARCH=arm64
           export SUBARCH=arm64
-          export PATH=$GITHUB_WORKSPACE/tc/bin:$PATH
           
           # Konfiguration laden
           make ARCH=arm64 gta2xlwifi_defconfig
           
-          # Vollständige LLVM/Clang Übergabe für moderne 4.9er Kernel
-          make -j$(nproc) ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu-
-          
+          # Direktes Kompilieren mit den integrierten LLVM/Clang Tools
+          make -j$(nproc) ARCH=arm64 CC=clang LD=ld.lld NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip
+
       - name: Datei hochladen
         uses: actions/upload-artifact@v4
         with:
