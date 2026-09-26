@@ -16,9 +16,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bc build-essential libncurses5-dev libssl-dev xz-utils wget curl git bison flex rsync lz4 liblz4-tool cpio
 
-      - name: Clone Proton-Clang (Community Toolchain)
+      - name: Clone Proton-Clang
         run: |
-          # Wir klonen den stabilsten Android-Compiler direkt von GitHub, um Googles Sperre zu umgehen
           git clone https://github.com --depth=1 $GITHUB_WORKSPACE/toolchain
 
       - name: Compile Kernel
