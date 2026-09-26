@@ -40,3 +40,4 @@ jobs:
         with:
           name: 2.2GHz-Kernel-SM-T590
           path: arch/arm64/boot/Image.gz-dtb
+    
