@@ -16,13 +16,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bc build-essential libncurses5-dev libssl-dev xz-utils wget curl git bison flex rsync lz4 liblz4-tool cpio
 
-      - name: Download Toolchain (Clang)
+      - name: Clone Proton-Clang (Community Toolchain)
         run: |
-          mkdir -p $GITHUB_WORKSPACE/toolchain
-          cd $GITHUB_WORKSPACE/toolchain
-          # Stabiler Mirror-Download für die passende Qualcomm/Android Toolchain
-          wget https://googlesource.com
-          tar -xf clang-r450784d.tar.gz
+          # Wir klonen den stabilsten Android-Compiler direkt von GitHub, um Googles Sperre zu umgehen
+          git clone https://github.com --depth=1 $GITHUB_WORKSPACE/toolchain
 
       - name: Compile Kernel
         run: |
@@ -30,6 +27,7 @@ jobs:
           export ARCH=arm64
           export SUBARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
+          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
           
           make ARCH=arm64 gta2xlwifi_defconfig
           make ARCH=arm64 CC=clang -j$(nproc)
