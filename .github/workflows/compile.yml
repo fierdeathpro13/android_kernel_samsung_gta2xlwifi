@@ -1,0 +1,42 @@
+name: Build Kernel SM-T590 (2.2GHz)
+
+on:
+  workflow_dispatch: # Erlaubt es dir, den Bauvorgang manuell per Knopfdruck zu starten
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Kernel Source
+        uses: actions/checkout@v4
+
+      - name: Set up Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc build-essential libncurses5-dev libssl-dev xz-utils wget curl git libssl-dev bison flex rsync lz4 liblz4-tool
+
+      - name: Download Toolchain (AOSP Clang)
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/toolchain
+          cd $GITHUB_WORKSPACE/toolchain
+          wget https://googlesource.com
+          tar -xf clang-r522817.tar.gz
+
+      - name: Compile Kernel
+        run: |
+          export PATH=$GITHUB_WORKSPACE/toolchain/bin:$PATH
+          export ARCH=arm64
+          export SUBARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          
+          # Konfiguration laden (gta2xlwifi ist der Name deines Tablets)
+          make ARCH=arm64 gta2xlwifi_defconfig
+          
+          # Bauvorgang mit allen Cloud-Kernen starten
+          make ARCH=arm64 CC=clang -j$(nproc)
+
+      - name: Upload compiled boot.img
+        uses: actions/upload-artifact@v4
+        with:
+          name: 2.2GHz-Kernel-SM-T590
+          path: arch/arm64/boot/Image.gz-dtb
