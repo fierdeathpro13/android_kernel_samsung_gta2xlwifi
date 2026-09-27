@@ -8,9 +8,15 @@ jobs:
   kernel-build:
     runs-on: ubuntu-latest
     container:
-      # Hier nutzen wir die offizielle, fertige Entwicklungsumgebung der Android-Community
-      image: docker://ubuntu:20.04
+      image: ubuntu:20.04
     steps:
+      - name: Git installieren (Container hat es nicht eingebaut)
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install -y git
+
       - name: Code holen
         uses: actions/checkout@v4
 
@@ -19,18 +25,30 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           apt-get update
-          apt-get install -y bc build-essential libncurses5-dev libssl-dev xz-utils wget curl git bison flex rsync lz4 liblz4-tool cpio clang lld llvm
+          apt-get install -y bc build-essential libncurses5-dev libssl-dev \
+            xz-utils wget curl git bison flex rsync lz4 liblz4-tool cpio \
+            clang lld llvm \
+            binutils-aarch64-linux-gnu binutils-arm-linux-gnueabi
 
       - name: Kernel bauen
         run: |
           export ARCH=arm64
           export SUBARCH=arm64
-          
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+          export CLANG_TRIPLE=aarch64-linux-gnu-
+
           # Konfiguration laden
           make ARCH=arm64 gta2xlwifi_defconfig
-          
-          # Direktes Kompilieren mit den integrierten LLVM/Clang Tools
-          make -j$(nproc) ARCH=arm64 CC=clang LD=ld.lld NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip
+
+          # Kompilieren: Clang fuer C-Code, GNU-Binutils fuer den Rest
+          make -j$(nproc) ARCH=arm64 \
+            CC=clang \
+            CLANG_TRIPLE=$CLANG_TRIPLE \
+            CROSS_COMPILE=$CROSS_COMPILE \
+            CROSS_COMPILE_ARM32=$CROSS_COMPILE_ARM32 \
+            LD=ld.lld AR=llvm-ar NM=llvm-nm \
+            OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip
 
       - name: Datei hochladen
         uses: actions/upload-artifact@v4
